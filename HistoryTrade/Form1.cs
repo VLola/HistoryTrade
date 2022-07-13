@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using Telegram.Bot;
@@ -159,9 +160,9 @@ namespace HistoryTrade
 		}
 		private void DisplayMessage(MessageBase messageBase)
 		{
-            //if (true)
-			if (messageBase.Peer.ID == 1729192251)
-			{
+            if (true)
+            //if (messageBase.Peer.ID == 1729192251)
+            {
 				TL.Message m = (TL.Message)messageBase;
 				if (m.message.Contains("#") && !m.message.Contains("Sold") && !m.message.Contains("Bought"))
 				{
@@ -322,27 +323,13 @@ namespace HistoryTrade
 			public bool isPositive { get; set; }
 			public bool isLong { get; set; }
 			public Symbol(string text)
-            {
-				// Name
-				int start = text.IndexOf('#');
-				int end = text.IndexOf(',');
-				string name = text.Remove(end);
-				SymbolName = name.Substring(++start);
-				// Profit
-				start = text.IndexOf('$');
-				end = text.IndexOf('#');
-				name = text.Remove(end);
-				string price = name.Substring(++start);
-				end = price.IndexOf('(');
-				name = price.Remove(--end);
-				Profit = Convert.ToDecimal(name.Replace('.', ','));
+			{
+				SymbolName = Regex.Match(text, @"#(.*),").Groups[1].Value;
+				Strategy = Regex.Match(text, @"<(.*)>").Groups[1].Value;
+				Profit = Convert.ToDecimal(Regex.Match(text, @"\$(.*) \(").Groups[1].Value.Replace('.', ','));
 				if (Profit > 0m) isPositive = true;
 				else isPositive = false;
 				if (text.Contains(": ⬆ (F)")) isLong = true;
-				start = text.IndexOf('<');
-				end = text.IndexOf('>');
-				name = text.Remove(end);
-				Strategy = name.Substring(++start);
 			}
         }
 	}
