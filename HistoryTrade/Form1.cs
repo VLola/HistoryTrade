@@ -54,11 +54,13 @@ namespace HistoryTrade
 			column3.HeaderText = "Count +";
 			column3.Width = 50;
 			column3.CellTemplate = new DataGridViewTextBoxCell();
+			column3.DefaultCellStyle.BackColor = Color.LightGreen;
 			dataGridView1.Columns.Add(column3);
 			column4.Name = "Count -";
 			column4.HeaderText = "Count -";
 			column4.Width = 50;
 			column4.CellTemplate = new DataGridViewTextBoxCell();
+			column4.DefaultCellStyle.BackColor = Color.LightPink;
 			dataGridView1.Columns.Add(column4);
 			column5.Name = "Longs";
 			column5.HeaderText = "Longs";
@@ -69,6 +71,7 @@ namespace HistoryTrade
 			column6.HeaderText = "Long +";
 			column6.Width = 50;
 			column6.CellTemplate = new DataGridViewTextBoxCell();
+			column6.DefaultCellStyle.BackColor = Color.LightSkyBlue;
 			dataGridView1.Columns.Add(column6);
 			column7.Name = "Shorts";
 			column7.HeaderText = "Shorts";
@@ -79,16 +82,19 @@ namespace HistoryTrade
 			column8.HeaderText = "Short +";
 			column8.Width = 50;
 			column8.CellTemplate = new DataGridViewTextBoxCell();
+			column8.DefaultCellStyle.BackColor = Color.LightSkyBlue;
 			dataGridView1.Columns.Add(column8);
 			column9.Name = "Profit";
 			column9.HeaderText = "Profit";
 			column9.Width = 50;
 			column9.CellTemplate = new DataGridViewTextBoxCell();
+			column9.DefaultCellStyle.BackColor = Color.LightGreen;
 			dataGridView1.Columns.Add(column9);
 			column10.Name = "Loss";
 			column10.HeaderText = "Loss";
 			column10.Width = 50;
 			column10.CellTemplate = new DataGridViewTextBoxCell();
+			column10.DefaultCellStyle.BackColor = Color.LightPink;
 			dataGridView1.Columns.Add(column10);
 			WTelegram.Helpers.Log = (l, s) => Debug.WriteLine(s);
 			Bot = new TelegramBotClient(token);
@@ -160,8 +166,8 @@ namespace HistoryTrade
 		}
 		private void DisplayMessage(MessageBase messageBase)
 		{
-            if (true)
-            //if (messageBase.Peer.ID == 1729192251)
+            //if (true)
+            if (messageBase.Peer.ID == 1729192251)
             {
 				TL.Message m = (TL.Message)messageBase;
 				if (m.message.Contains("#") && !m.message.Contains("Sold") && !m.message.Contains("Bought"))
