@@ -1,6 +1,8 @@
 ﻿using Microsoft.VisualBasic;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -14,6 +16,9 @@ namespace HistoryTrade
 {
     public partial class Form1 : Form
     {
+		long ChatId { get; set; }
+		string path_screen = Directory.GetCurrentDirectory() + @"/screen.jpg";
+		static string path = Directory.GetCurrentDirectory() + "/users/";
 		private readonly ManualResetEventSlim _codeReady = new ManualResetEventSlim();
 		private WTelegram.Client _client;
 		private User _user;
@@ -29,18 +34,23 @@ namespace HistoryTrade
 			DataGridViewColumn column3 = new DataGridViewColumn();
 			DataGridViewColumn column4 = new DataGridViewColumn();
 			DataGridViewColumn column5 = new DataGridViewColumn();
+			DataGridViewColumn column6 = new DataGridViewColumn();
+			DataGridViewColumn column7 = new DataGridViewColumn();
+			DataGridViewColumn column8 = new DataGridViewColumn();
+			DataGridViewColumn column9 = new DataGridViewColumn();
+			DataGridViewColumn column10 = new DataGridViewColumn();
 			column1.Name = "Symbol";
 			column1.HeaderText = "Symbol";
 			column1.Width = 100;
 			column1.CellTemplate = new DataGridViewTextBoxCell();
 			dataGridView1.Columns.Add(column1);
-			column2.Name = "Count +";
-			column2.HeaderText = "Count +";
+			column2.Name = "Strategy";
+			column2.HeaderText = "Strategy";
 			column2.Width = 50;
 			column2.CellTemplate = new DataGridViewTextBoxCell();
 			dataGridView1.Columns.Add(column2);
-			column3.Name = "Profit";
-			column3.HeaderText = "Profit";
+			column3.Name = "Count +";
+			column3.HeaderText = "Count +";
 			column3.Width = 50;
 			column3.CellTemplate = new DataGridViewTextBoxCell();
 			dataGridView1.Columns.Add(column3);
@@ -49,22 +59,48 @@ namespace HistoryTrade
 			column4.Width = 50;
 			column4.CellTemplate = new DataGridViewTextBoxCell();
 			dataGridView1.Columns.Add(column4);
-			column5.Name = "Loss";
-			column5.HeaderText = "Loss";
+			column5.Name = "Longs";
+			column5.HeaderText = "Longs";
 			column5.Width = 50;
 			column5.CellTemplate = new DataGridViewTextBoxCell();
 			dataGridView1.Columns.Add(column5);
+			column6.Name = "Long +";
+			column6.HeaderText = "Long +";
+			column6.Width = 50;
+			column6.CellTemplate = new DataGridViewTextBoxCell();
+			dataGridView1.Columns.Add(column6);
+			column7.Name = "Shorts";
+			column7.HeaderText = "Shorts";
+			column7.Width = 50;
+			column7.CellTemplate = new DataGridViewTextBoxCell();
+			dataGridView1.Columns.Add(column7);
+			column8.Name = "Short +";
+			column8.HeaderText = "Short +";
+			column8.Width = 50;
+			column8.CellTemplate = new DataGridViewTextBoxCell();
+			dataGridView1.Columns.Add(column8);
+			column9.Name = "Profit";
+			column9.HeaderText = "Profit";
+			column9.Width = 50;
+			column9.CellTemplate = new DataGridViewTextBoxCell();
+			dataGridView1.Columns.Add(column9);
+			column10.Name = "Loss";
+			column10.HeaderText = "Loss";
+			column10.Width = 50;
+			column10.CellTemplate = new DataGridViewTextBoxCell();
+			dataGridView1.Columns.Add(column10);
 			WTelegram.Helpers.Log = (l, s) => Debug.WriteLine(s);
 			Bot = new TelegramBotClient(token);
+			UsersWatcher();
 		}
 		private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
 		{
 			_client?.Dispose();
 			Properties.Settings.Default.Save();
 		}
-		private void linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+		private void Button1_Click(object sender, System.EventArgs e)
 		{
-			Process.Start(((LinkLabel)sender).Tag as string);
+			new FormAddUser().ShowDialog();
 		}
 		private async void buttonLogin_Click(object sender, EventArgs e)
 		{
@@ -77,12 +113,13 @@ namespace HistoryTrade
 		}
 		string Config(string what)
 		{
+			Model.User user = (Model.User)comboBox1.SelectedItem;
 			switch (what)
 			{
-				case "api_id": return "10489970";
-				case "api_hash": return "ccbd2e27673871e4f2fc32360b83b8d3";
-				case "phone_number": return "+380982667643";
-				case "verification_code":
+                case "api_id": return user.ApiId;
+                case "api_hash": return user.ApiHash;
+                case "phone_number": return user.PhoneNumber;
+                case "verification_code":
 				case "password":
 					BeginInvoke(new Action(() => CodeNeeded(what.Replace('_', ' '))));
 					_codeReady.Reset();
@@ -122,6 +159,7 @@ namespace HistoryTrade
 		}
 		private void DisplayMessage(MessageBase messageBase)
 		{
+            //if (true)
 			if (messageBase.Peer.ID == 1729192251)
 			{
 				TL.Message m = (TL.Message)messageBase;
@@ -138,95 +176,151 @@ namespace HistoryTrade
 							bool check = false;
 							foreach (var it in full_history)
 							{
-								if (item.SymbolName == it.SymbolName)
+								if (item.SymbolName == it.SymbolName && item.Strategy == it.Strategy)
 								{
 									check = true;
 									if (item.isPositive)
 									{
 										it.Profit += item.Profit;
 										it.CountPositive++;
+										if (item.isLong)
+										{
+											it.CountLong++;
+											it.CountLongPlus++;
+										}
+										else
+										{
+											it.CountShort++;
+											it.CountShortPlus++;
+										}
 									}
 									else
 									{
 										it.Loss += item.Profit;
 										it.CountNegative++;
+										if (item.isLong) it.CountLong++;
+										else it.CountShort++;
 									}
 								}
 							}
-							if (!check)
-							{
-								FullHistory history = new FullHistory();
-								history.SymbolName = item.SymbolName;
-								if (item.isPositive)
-								{
-									history.Profit = item.Profit;
-									history.CountPositive++;
-								}
-								else
-								{
-									history.Loss = item.Profit;
-									history.CountNegative++;
-								}
-								full_history.Add(history);
-							}
+							if (!check) AddHistory(item);
 						}
-						else
-						{
-							FullHistory history = new FullHistory();
-							history.SymbolName = item.SymbolName;
-							if (item.isPositive)
-							{
-								history.Profit = item.Profit;
-								history.CountPositive++;
-							}
-							else
-							{
-								history.Loss = item.Profit;
-								history.CountNegative++;
-							}
-							full_history.Add(history);
-						}
+						else AddHistory(item);
 					}
 					foreach (var it in full_history)
 					{
-						dataGridView1.Rows.Add(it.SymbolName, it.CountPositive, it.Profit, it.CountNegative, it.Loss);
+						dataGridView1.Rows.Add(it.SymbolName, it.Strategy, it.CountPositive, it.CountNegative, it.CountLong, it.CountLongPlus,it.CountShort, it.CountShortPlus, it.Profit, it.Loss);
 					}
 					dataGridView1.AutoSize = true;
-					string path_screen = Directory.GetCurrentDirectory() + @"/screen.jpg";
+					dataGridView1.Sort(dataGridView1.Columns[0], ListSortDirection.Ascending);
 					Bitmap bmp = new Bitmap(this.dataGridView1.Width - 30, this.dataGridView1.Height - 30);
 					this.dataGridView1.DrawToBitmap(bmp, this.dataGridView1.ClientRectangle);
 					bmp.Save(path_screen);
 
-					Telegram.Bot.Types.ChatId chatId = new Telegram.Bot.Types.ChatId(724154385);
-					FileStream fsSource = new FileStream(path_screen, FileMode.Open, FileAccess.Read);
-					InputOnlineFile file = new InputOnlineFile(fsSource);
-					Bot.SendPhotoAsync(chatId: chatId, photo: file);
+                    if(ChatId != 0)
+                    {
+						Telegram.Bot.Types.ChatId chatId = new Telegram.Bot.Types.ChatId(ChatId);
+						FileStream fsSource = new FileStream(path_screen, FileMode.Open, FileAccess.Read);
+						InputOnlineFile file = new InputOnlineFile(fsSource);
+						Bot.SendPhotoAsync(chatId: chatId, photo: file);
+					}
 				}
 			}
-			//MessageBox.Show($"{messageBase.From.ID}");
+            if (checkBox1.Checked)
+            {
+				TL.Message m = (TL.Message)messageBase;
+				if(m.message == "TEST")
+                {
+					Model.User user = (Model.User)comboBox1.SelectedItem;
+					user.ChatId = messageBase.From.ID;
+					checkBox1.Checked = false;
+					string json = JsonConvert.SerializeObject(user);
+					File.WriteAllText(path + user.UserName, json);
+				}
+			}
 			
 		}
-		private string TableString(string text)
-		{
-			while (text.Length < 20)
+		private void AddHistory(Symbol item)
+        {
+			FullHistory history = new FullHistory();
+			history.SymbolName = item.SymbolName;
+			history.Strategy = item.Strategy;
+			if (item.isPositive)
 			{
-				text += " ";
+				history.Profit = item.Profit;
+				history.CountPositive++;
+				if (item.isLong)
+				{
+					history.CountLong++;
+					history.CountLongPlus++;
+				}
+				else
+				{
+					history.CountShort++;
+					history.CountShortPlus++;
+				}
 			}
-			return text;
+			else
+			{
+				history.Loss = item.Profit;
+				history.CountNegative++;
+				if (item.isLong) history.CountLong++;
+				else history.CountShort++;
+			}
+			full_history.Add(history);
 		}
-		public class FullHistory
+		private void UsersWatcher()
+		{
+			if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+			LoadUsers();
+			FileSystemWatcher watcher = new FileSystemWatcher();
+			watcher.Path = path;
+			watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.LastAccess | NotifyFilters.FileName | NotifyFilters.DirectoryName;
+            watcher.Changed += Error_watcher_Changed;
+			watcher.EnableRaisingEvents = true;
+		}
+
+        private void Error_watcher_Changed(object sender, FileSystemEventArgs e)
+        {
+			LoadUsers();
+		}
+		private void LoadUsers()
+        {
+            if (Directory.GetFiles(path).Length > 0)
+            {
+				comboBox1.Items.Clear();
+				foreach (var item in Directory.GetFiles(path))
+				{
+					Model.User user = JsonConvert.DeserializeObject<Model.User>(File.ReadAllText(item));
+					comboBox1.Items.Add(user);
+				}
+				comboBox1.SelectedIndex = 0;
+				Model.User user_chat = (Model.User)comboBox1.SelectedItem;
+				ChatId = user_chat.ChatId;
+				label2.Text = ChatId.ToString();
+			}
+		}
+
+        public class FullHistory
         {
 			public string SymbolName { get; set; }
+			public string Strategy { get; set; }
 			public decimal Profit { get; set; }
 			public decimal Loss { get; set; }
 			public int CountPositive { get; set; }
 			public int CountNegative { get; set; }
+			public int CountLong { get; set; }
+			public int CountShort { get; set; }
+			public int CountLongPlus { get; set; }
+			public int CountShortPlus { get; set; }
 		}
 		public class Symbol
         {
 			public string SymbolName { get; set; }
+			public string Strategy { get; set; }
 			public decimal Profit { get; set; }
 			public bool isPositive { get; set; }
+			public bool isLong { get; set; }
 			public Symbol(string text)
             {
 				// Name
@@ -244,6 +338,11 @@ namespace HistoryTrade
 				Profit = Convert.ToDecimal(name.Replace('.', ','));
 				if (Profit > 0m) isPositive = true;
 				else isPositive = false;
+				if (text.Contains(": ⬆ (F)")) isLong = true;
+				start = text.IndexOf('<');
+				end = text.IndexOf('>');
+				name = text.Remove(end);
+				Strategy = name.Substring(++start);
 			}
         }
 	}
